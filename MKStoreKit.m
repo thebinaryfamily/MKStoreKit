@@ -158,8 +158,9 @@ static NSDictionary *errorDictionary;
 }
 
 -(NSDate*) expiryDateForProduct:(NSString*) productId {
-  
+
   NSNumber *expiresDateMs = self.purchaseRecord[productId];
+  if ([expiresDateMs isKindOfClass:[NSNull class]]) { return nil; }
   return [NSDate dateWithTimeIntervalSince1970:[expiresDateMs doubleValue] / 1000.0f];
 }
 
@@ -303,7 +304,7 @@ static NSDictionary *errorDictionary;
     completionHandler(nil, nil);
     return;
   }
-  
+
   NSError *error;
   NSMutableDictionary *requestContents = [NSMutableDictionary dictionaryWithObject:
                                           [receiptData base64EncodedStringWithOptions:0] forKey:@"receipt-data"];
@@ -322,26 +323,31 @@ static NSDictionary *errorDictionary;
   [storeRequest setHTTPBody:requestData];
   
   NSURLSession *session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]];
-  
+
   [[session dataTaskWithRequest:storeRequest completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
     if (!error) {
       NSDictionary *jsonResponse = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
       NSInteger status = [jsonResponse[@"status"] integerValue];
-      NSString *originalAppVersion = jsonResponse[@"receipt"][@"original_application_version"];
-      [self.purchaseRecord setObject:originalAppVersion forKey:kOriginalAppVersionKey];
-      [self savePurchaseRecord];
       
       if (status != 0) {
-        NSError *error = [NSError errorWithDomain:@"com.mugunthkumar.mkstorekit" code:status
-                                         userInfo:@{NSLocalizedDescriptionKey : errorDictionary[@(status)]}];
-        completionHandler(nil, error);
-      } else {
+          NSError *error = [NSError errorWithDomain:@"com.mugunthkumar.mkstorekit" code:status
+                                           userInfo:@{NSLocalizedDescriptionKey : errorDictionary[@(status)] ?: @"" }];
+          completionHandler(nil, error);
+      }
+      else {
+          NSString *originalAppVersion = jsonResponse[@"receipt"][@"original_application_version"];
+          if (originalAppVersion) {
+              [self.purchaseRecord setObject:originalAppVersion forKey:kOriginalAppVersionKey];
+              [self savePurchaseRecord];
+          }
+          
         NSMutableArray *receipts = [jsonResponse[@"latest_receipt_info"] mutableCopy];
         NSArray *inAppReceipts = jsonResponse[@"receipt"][@"in_app"];
         [receipts addObjectsFromArray:inAppReceipts];
         completionHandler(receipts, nil);
       }
-    } else {
+    }
+    else {
       completionHandler(nil, error);
     }
   }] resume];
@@ -360,30 +366,34 @@ static NSDictionary *errorDictionary;
   [self startValidatingAppStoreReceiptWithCompletionHandler:^(NSArray *receipts, NSError *error) {
     if (error) {
       NSLog(@"Receipt validation failed with error: %@", error);
-      [[NSNotificationCenter defaultCenter] postNotificationName:kMKStoreKitReceiptValidationFailedNotification object:error];
+        [[NSNotificationCenter defaultCenter] postNotificationName:kMKStoreKitReceiptValidationFailedNotification object:error];
     } else {
-      __block BOOL purchaseRecordDirty = NO;
-      [receipts enumerateObjectsUsingBlock:^(NSDictionary *receiptDictionary, NSUInteger idx, BOOL *stop) {
-        NSString *productIdentifier = receiptDictionary[@"product_id"];
-        NSNumber *expiresDateMs = receiptDictionary[@"expires_date_ms"];
-        NSNumber *previouslyStoredExpiresDateMs = self.purchaseRecord[productIdentifier];
-        if (expiresDateMs && ![expiresDateMs isKindOfClass:[NSNull class]] && ![previouslyStoredExpiresDateMs isKindOfClass:[NSNull class]]) {
-          if ([expiresDateMs doubleValue] > [previouslyStoredExpiresDateMs doubleValue]) {
-            self.purchaseRecord[productIdentifier] = expiresDateMs;
-            purchaseRecordDirty = YES;
-          }
-        }
-      }];
-      
-      if (purchaseRecordDirty) [self savePurchaseRecord];
-      
-      [self.purchaseRecord enumerateKeysAndObjectsUsingBlock:^(NSString *productIdentifier, NSNumber *expiresDateMs, BOOL *stop) {
-        if (![expiresDateMs isKindOfClass: [NSNull class]]) {
-          if ([[NSDate date] timeIntervalSince1970] > [expiresDateMs doubleValue]) {
-            [[NSNotificationCenter defaultCenter] postNotificationName:kMKStoreKitSubscriptionExpiredNotification object:productIdentifier];
-          }
-        }
-      }];
+        __block BOOL purchaseRecordDirty = NO;
+        [receipts enumerateObjectsUsingBlock:^(NSDictionary *receiptDictionary, NSUInteger idx, BOOL *stop) {
+            NSString *productIdentifier = receiptDictionary[@"product_id"];
+            NSNumber *expiresDateMs = receiptDictionary[@"expires_date_ms"];
+            NSNumber *previouslyStoredExpiresDateMs = self.purchaseRecord[productIdentifier];
+            if (expiresDateMs && ![expiresDateMs isKindOfClass:[NSNull class]] && ![previouslyStoredExpiresDateMs isKindOfClass:[NSNull class]]) {
+                if ([expiresDateMs doubleValue] > [previouslyStoredExpiresDateMs doubleValue]) {
+                    self.purchaseRecord[productIdentifier] = expiresDateMs;
+                    purchaseRecordDirty = YES;
+                }
+            }
+            if (expiresDateMs && ![expiresDateMs isKindOfClass:[NSNull class]] && [previouslyStoredExpiresDateMs isKindOfClass:[NSNull class]]){
+                self.purchaseRecord[productIdentifier] = expiresDateMs;
+                purchaseRecordDirty = YES;
+            }
+        }];
+        
+        if (purchaseRecordDirty) {[self savePurchaseRecord];}
+        
+        [self.purchaseRecord enumerateKeysAndObjectsUsingBlock:^(NSString *productIdentifier, NSNumber *expiresDateMs, BOOL *stop) {
+            if (![expiresDateMs isKindOfClass: [NSNull class]]) {
+                if ([[NSDate date] timeIntervalSince1970] > [expiresDateMs doubleValue]) {
+                    [[NSNotificationCenter defaultCenter] postNotificationName:kMKStoreKitSubscriptionExpiredNotification object:productIdentifier];
+                }
+            }
+        }];
     }
   }];
 }
