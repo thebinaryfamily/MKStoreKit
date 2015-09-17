@@ -57,6 +57,7 @@ static NSDictionary *errorDictionary;
 
 @interface MKStoreKit (/*Private Methods*/) <SKProductsRequestDelegate, SKPaymentTransactionObserver>
 @property NSMutableDictionary *purchaseRecord;
+@property BOOL useSandbox;
 @end
 
 @implementation MKStoreKit
@@ -313,11 +314,19 @@ static NSDictionary *errorDictionary;
   
   NSData *requestData = [NSJSONSerialization dataWithJSONObject:requestContents options:0 error:&error];
   
-#ifdef DEBUG
-  NSMutableURLRequest *storeRequest = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:kSandboxServer]];
-#else
-  NSMutableURLRequest *storeRequest = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:kLiveServer]];
-#endif
+// The "normal" way of deciding when to use the sandbox or the production environment does not cut it for Testflight and autorenewables. That is why we always asume we need the appstore and only if that fails with 21008 we go again and use the sandbox this time.
+//#ifdef DEBUG
+//  NSMutableURLRequest *storeRequest = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:kSandboxServer]];
+//#else
+//  NSMutableURLRequest *storeRequest = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:kLiveServer]];
+//#endif
+    
+    NSMutableURLRequest *storeRequest = nil;
+    if (self.useSandbox) {
+        storeRequest = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:kSandboxServer]];
+    } else {
+        storeRequest = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:kLiveServer]];
+    }
   
   [storeRequest setHTTPMethod:@"POST"];
   [storeRequest setHTTPBody:requestData];
@@ -363,11 +372,42 @@ static NSDictionary *errorDictionary;
 }
 
 - (void)startValidatingReceiptsAndUpdateLocalStore {
+    [self startValidatingReceiptsAndUpdateLocalStoreAllowEnvironmentSwitch:YES];
+}
+
+- (void)startValidatingReceiptsAndUpdateLocalStoreAllowEnvironmentSwitch:(BOOL)allowEnvironmentSwitch {
   [self startValidatingAppStoreReceiptWithCompletionHandler:^(NSArray *receipts, NSError *error) {
     if (error) {
       NSLog(@"Receipt validation failed with error: %@", error);
+        if ( allowEnvironmentSwitch && [[error domain] isEqualToString:@"com.mugunthkumar.mkstorekit"] ) {
+            NSInteger status = [error code];
+            NSLog(@"Validation status was = %i", (int) status);
+            // we at first always work against the appstore. And only if the appstore tells us 21008 (sandbox receipt)
+            // we switch over to the sandbox and try again. And only if we are already at the retry we raise the error
+            // @(21007) : @"This receipt is from the test environment.",
+            // @(21008) : @"This receipt is from the production environment."
+            if (status == 21008) {
+                NSLog(@"Validation switching from Sandbox to Appstore");
+                // switch from sandbox to appstore
+                [MKStoreKit sharedKit].useSandbox = NO;
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    [[MKStoreKit sharedKit] startValidatingReceiptsAndUpdateLocalStoreAllowEnvironmentSwitch:NO];
+                });
+                return;
+            }
+            else if (status == 21007) {
+                NSLog(@"Validation switching from Appstore to Sandbox");
+                // switch from appstore to sandbox
+                [MKStoreKit sharedKit].useSandbox = YES;
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    [[MKStoreKit sharedKit] startValidatingReceiptsAndUpdateLocalStoreAllowEnvironmentSwitch:NO];
+                });
+                return;
+            }
+        }
         [[NSNotificationCenter defaultCenter] postNotificationName:kMKStoreKitReceiptValidationFailedNotification object:error];
-    } else {
+    }
+    else {
         __block BOOL purchaseRecordDirty = NO;
         [receipts enumerateObjectsUsingBlock:^(NSDictionary *receiptDictionary, NSUInteger idx, BOOL *stop) {
             NSString *productIdentifier = receiptDictionary[@"product_id"];
