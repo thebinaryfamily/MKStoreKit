@@ -40,6 +40,7 @@
 
 @import StoreKit;
 NSString *const kMKStoreKitProductsAvailableNotification = @"com.mugunthkumar.mkstorekit.productsavailable";
+NSString *const kMKStoreKitProductsRequestFailedNotification = @"com.mugunthkumar.mkstorekit.productsrequestfailed";
 NSString *const kMKStoreKitProductPurchasedNotification = @"com.mugunthkumar.mkstorekit.productspurchased";
 NSString *const kMKStoreKitProductPurchaseFailedNotification = @"com.mugunthkumar.mkstorekit.productspurchasefailed";
 NSString *const kMKStoreKitProductPurchaseDeferredNotification = @"com.mugunthkumar.mkstorekit.productspurchasedeferred";
@@ -213,6 +214,9 @@ static NSDictionary *errorDictionary;
 
 - (void)request:(SKRequest *)request didFailWithError:(NSError *)error {
   NSLog(@"Product request failed with error: %@", error);
+  if ( [request isKindOfClass:[SKProductsResponse class]] ) {
+      [[NSNotificationCenter defaultCenter] postNotificationName:kMKStoreKitProductsRequestFailedNotification object:error];
+  }
 }
 
 #pragma mark -
