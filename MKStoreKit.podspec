@@ -5,8 +5,8 @@ Pod::Spec.new do |s|
   s.homepage           = 'https://github.com/MugunthKumar/MKStoreKit'
   s.authors            = 'Mugunth Kumar'
   s.license            = 'MIT License'
-  s.source             = { :git => 'https://github.com/thebinaryfamily/MKStoreKit.git', :commit => '70fdd3a69d24bf56065732dafec63cb251ed30de' }
-  s.source_files       = 'MKStoreKit/MKStoreKit.h'
+  s.source             = { :git => 'https://github.com/thebinaryfamily/MKStoreKit.git', :head }
+  s.source_files       = 'MKStoreKit.{h,m}'
   s.requires_arc       = true
   s.ios.deployment_target = '7.0'
   s.osx.deployment_target = '10.10'
