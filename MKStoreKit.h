@@ -107,6 +107,11 @@ extern NSString *const kMKStoreKitRestoringPurchasesFailedNotification;
 extern NSString *const kMKStoreKitReceiptValidationFailedNotification;
 
 /*!
+ *  @abstract This notification is posted when MKStoreKit receipts validation is finished
+ */
+extern NSString *const kMKStoreKitReceiptValidationCompletedNotification;
+
+/*!
  *  @abstract This notification is posted when MKStoreKit detects expiration of a auto-renewing subscription
  */
 extern NSString *const kMKStoreKitSubscriptionExpiredNotification;

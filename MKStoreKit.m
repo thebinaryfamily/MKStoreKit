@@ -47,6 +47,7 @@ NSString *const kMKStoreKitProductPurchaseDeferredNotification = @"com.mugunthku
 NSString *const kMKStoreKitRestoredPurchasesNotification = @"com.mugunthkumar.mkstorekit.restoredpurchases";
 NSString *const kMKStoreKitRestoringPurchasesFailedNotification = @"com.mugunthkumar.mkstorekit.failedrestoringpurchases";
 NSString *const kMKStoreKitReceiptValidationFailedNotification = @"com.mugunthkumar.mkstorekit.failedvalidatingreceipts";
+NSString *const kMKStoreKitReceiptValidationCompletedNotification = @"com.mugunthkumar.mkstorekit.completedvalidatingreceipts";
 NSString *const kMKStoreKitSubscriptionExpiredNotification = @"com.mugunthkumar.mkstorekit.subscriptionexpired";
 
 NSString *const kSandboxServer = @"https://sandbox.itunes.apple.com/verifyReceipt";
@@ -438,6 +439,8 @@ static NSDictionary *errorDictionary;
                 }
             }
         }];
+        
+        [[NSNotificationCenter defaultCenter] postNotificationName:kMKStoreKitReceiptValidationCompletedNotification object:nil];
     }
   }];
 }
