@@ -530,7 +530,7 @@ static NSDictionary *errorDictionary;
         
         [self savePurchaseRecord];
         [[NSNotificationCenter defaultCenter] postNotificationName:kMKStoreKitProductPurchasedNotification
-                                                            object:transaction.payment.productIdentifier];
+                                                            object:transaction.payment.productIdentifier userInfo:@{@"transaction": transaction}];
       }
         break;
     }
@@ -541,13 +541,13 @@ static NSDictionary *errorDictionary;
   NSLog(@"Transaction Failed with error: %@", transaction.error);
   [queue finishTransaction:transaction];
   [[NSNotificationCenter defaultCenter] postNotificationName:kMKStoreKitProductPurchaseFailedNotification
-                                                      object:transaction.payment.productIdentifier];
+                                                      object:transaction.payment.productIdentifier userInfo:@{@"transaction": transaction}];
 }
 
 - (void)deferredTransaction:(SKPaymentTransaction *)transaction inQueue:(SKPaymentQueue *)queue {
   NSLog(@"Transaction Deferred: %@", transaction);
   [[NSNotificationCenter defaultCenter] postNotificationName:kMKStoreKitProductPurchaseDeferredNotification
-                                                      object:transaction.payment.productIdentifier];
+                                                      object:transaction.payment.productIdentifier userInfo:@{@"transaction": transaction}];
 }
 
 @end
