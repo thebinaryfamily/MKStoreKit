@@ -289,9 +289,11 @@ static NSDictionary *errorDictionary;
     if ([[NSFileManager defaultManager] fileExistsAtPath:[receiptUrl path]]) {
       NSLog(@"App receipt exists. Preparing to validate and update local stores.");
       [self startValidatingReceiptsAndUpdateLocalStore];
-    } else {
+    }
+    else {
       NSLog(@"Receipt request completed but there is no receipt. The user may have refused to login, or the reciept is missing.");
       // Disable features of your app, but do not terminate the app
+      [[NSNotificationCenter defaultCenter] postNotificationName:kMKStoreKitRestoringPurchasesFailedNotification object:nil];
     }
   }
 }
