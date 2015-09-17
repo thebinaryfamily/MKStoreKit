@@ -247,7 +247,7 @@ static NSDictionary *errorDictionary;
     // Initializer might be running or internet might not be available
     NSLog(@"No products are available. Did you initialize MKStoreKit by calling [[MKStoreKit sharedKit] startProductRequest]?");
     
-    [[NSNotificationCenter defaultCenter] postNotificationName:kMKStoreKitProductPurchaseFailedNotification object:nil];
+    [[NSNotificationCenter defaultCenter] postNotificationName:kMKStoreKitProductPurchaseFailedNotification object:productId];
     return;
   }
   
@@ -264,7 +264,7 @@ static NSDictionary *errorDictionary;
     alert.informativeText = NSLocalizedString(@"Check your parental control settings and try again later", @"");
     [alert runModal];
 #endif
-    [[NSNotificationCenter defaultCenter] postNotificationName:kMKStoreKitProductPurchaseFailedNotification object:nil];
+    [[NSNotificationCenter defaultCenter] postNotificationName:kMKStoreKitProductPurchaseFailedNotification object:productId];
     return;
   }
   
@@ -279,7 +279,7 @@ static NSDictionary *errorDictionary;
   }];
   
   if ( !initiatedPayment ) {
-    [[NSNotificationCenter defaultCenter] postNotificationName:kMKStoreKitProductPurchaseFailedNotification object:nil];
+    [[NSNotificationCenter defaultCenter] postNotificationName:kMKStoreKitProductPurchaseFailedNotification object:productId];
   }
 }
 
