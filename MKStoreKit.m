@@ -218,6 +218,9 @@ static NSDictionary *errorDictionary;
   if ( [request isKindOfClass:[SKProductsResponse class]] ) {
       [[NSNotificationCenter defaultCenter] postNotificationName:kMKStoreKitProductsRequestFailedNotification object:error];
   }
+  else if ( [request isKindOfClass:[SKReceiptRefreshRequest class]] ) {
+      [[NSNotificationCenter defaultCenter] postNotificationName:kMKStoreKitRestoringPurchasesFailedNotification object:error];
+  }
 }
 
 #pragma mark -
