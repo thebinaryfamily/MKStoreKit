@@ -510,8 +510,6 @@ static NSDictionary *errorDictionary;
           [queue startDownloads:transaction.downloads];
         }
         
-        [queue finishTransaction:transaction];
-        
         NSDictionary *availableConsumables = [MKStoreKit configs][@"Consumables"];
         NSArray *consumables = [availableConsumables allKeys];
         if ([consumables containsObject:transaction.payment.productIdentifier]) {
@@ -529,8 +527,11 @@ static NSDictionary *errorDictionary;
         }
         
         [self savePurchaseRecord];
+        
         [[NSNotificationCenter defaultCenter] postNotificationName:kMKStoreKitProductPurchasedNotification
                                                             object:transaction.payment.productIdentifier userInfo:@{@"transaction": transaction}];
+        
+        [queue finishTransaction:transaction];
       }
         break;
     }
