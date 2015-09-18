@@ -219,7 +219,7 @@ static NSDictionary *errorDictionary;
       [[NSNotificationCenter defaultCenter] postNotificationName:kMKStoreKitProductsRequestFailedNotification object:error];
   }
   else if ( [request isKindOfClass:[SKReceiptRefreshRequest class]] ) {
-      [[NSNotificationCenter defaultCenter] postNotificationName:kMKStoreKitRestoringPurchasesFailedNotification object:error];
+      [[NSNotificationCenter defaultCenter] postNotificationName:kMKStoreKitReceiptValidationFailedNotification object:error];
   }
 }
 
@@ -303,7 +303,7 @@ static NSDictionary *errorDictionary;
     else {
       NSLog(@"Receipt request completed but there is no receipt. The user may have refused to login, or the reciept is missing.");
       // Disable features of your app, but do not terminate the app
-      [[NSNotificationCenter defaultCenter] postNotificationName:kMKStoreKitRestoringPurchasesFailedNotification object:nil];
+      [[NSNotificationCenter defaultCenter] postNotificationName:kMKStoreKitReceiptValidationFailedNotification object:nil];
     }
   }
 }
@@ -533,7 +533,7 @@ static NSDictionary *errorDictionary;
         
         [queue finishTransaction:transaction];
       }
-        break;
+      break;
     }
   }
 }
